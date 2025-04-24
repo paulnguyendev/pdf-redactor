@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Redactor - Che thông tin liên hệ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 2rem;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .card {
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+        .progress-wrapper {
+            display: none;
+            margin-top: 1rem;
+        }
+        #uploadedFiles {
+            margin-top: 1rem;
+        }
+        .file-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-item .badge {
+            margin-left: 10px;
+        }
+        .result-panel {
+            display: none;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: #e9f7ef;
+            border: 1px solid #d5f5e3;
+        }
+        .btn-group.actions {
+            display: flex;
+            gap: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4 text-center">PDF Redactor</h1>
+        <p class="text-center text-muted mb-4">Công cụ che thông tin liên hệ trong CV tự động</p>
+
+        <!-- Single File Upload Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Redact File Đơn Lẻ</h5>
+            </div>
+            <div class="card-body">
+                <form id="singleUploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="singleFile" class="form-label">Chọn file PDF</label>
+                        <input class="form-control" type="file" id="singleFile" name="file" accept=".pdf" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="singleDpi" class="form-label">DPI (độ phân giải)</label>
+                        <input type="range" class="form-range" min="100" max="600" step="50" value="300" id="singleDpi">
+                        <div class="text-center" id="singleDpiValue">300</div>
+                        <small class="text-muted">DPI cao hơn cho kết quả chính xác hơn nhưng xử lý lâu hơn</small>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary" id="singleUploadBtn">
+                            <i class="bi bi-upload"></i> Redact PDF
+                        </button>
+                    </div>
+                    <div class="progress-wrapper" id="singleProgressWrapper">
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" id="singleProgressBar"></div>
+                        </div>
+                        <div class="text-center mt-2" id="singleUploadStatus">Đang xử lý...</div>
+                    </div>
+                </form>
+                
+                <!-- Kết quả xử lý file đơn lẻ -->
+                <div class="result-panel" id="singleResultPanel">
+                    <h5 class="mb-3">Kết quả xử lý</h5>
+                    <div class="mb-3">
+                        <strong>File gốc:</strong> <span id="originalFilename"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Trạng thái:</strong> <span class="badge bg-success">Hoàn thành</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Đường dẫn:</strong>
+                        <div class="input-group mt-1">
+                            <input type="text" class="form-control" id="fileUrl" readonly>
+                            <button class="btn btn-outline-secondary" type="button" id="copyUrlBtn">Sao chép</button>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center gap-2 mt-4">
+                        <a href="#" class="btn btn-primary" id="viewFileBtn" target="_blank">Xem File</a>
+                        <a href="#" class="btn btn-success" id="downloadFileBtn" target="_blank">Tải xuống</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Upload Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Redact Nhiều File</h5>
+            </div>
+            <div class="card-body">
+                <form id="batchUploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="batchFiles" class="form-label">Chọn nhiều file PDF</label>
+                        <input class="form-control" type="file" id="batchFiles" name="files" accept=".pdf" multiple required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="batchDpi" class="form-label">DPI (độ phân giải)</label>
+                        <input type="range" class="form-range" min="100" max="600" step="50" value="300" id="batchDpi">
+                        <div class="text-center" id="batchDpiValue">300</div>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary" id="batchUploadBtn">
+                            <i class="bi bi-upload"></i> Xử Lý Batch
+                        </button>
+                    </div>
+                    <div class="progress-wrapper" id="batchProgressWrapper">
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" id="batchProgressBar"></div>
+                        </div>
+                        <div class="text-center mt-2" id="batchUploadStatus">Đang xử lý...</div>
+                    </div>
+                </form>
+                <div id="uploadedFiles"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Hiển thị giá trị DPI
+        document.getElementById('singleDpi').addEventListener('input', function() {
+            document.getElementById('singleDpiValue').textContent = this.value;
+        });
+        
+        document.getElementById('batchDpi').addEventListener('input', function() {
+            document.getElementById('batchDpiValue').textContent = this.value;
+        });
+
+        // Sao chép URL vào clipboard
+        document.getElementById('copyUrlBtn').addEventListener('click', function() {
+            const urlInput = document.getElementById('fileUrl');
+            urlInput.select();
+            document.execCommand('copy');
+            
+            // Hiển thị thông báo đã sao chép
+            this.innerText = 'Đã sao chép';
+            setTimeout(() => {
+                this.innerText = 'Sao chép';
+            }, 2000);
+        });
+
+        // Xử lý form đơn lẻ
+        document.getElementById('singleUploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('singleFile');
+            if (!fileInput.files.length) {
+                alert('Vui lòng chọn file PDF');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert('Chỉ chấp nhận file PDF');
+                return;
+            }
+            
+            const dpi = document.getElementById('singleDpi').value;
+            
+            // Hiển thị thanh tiến trình
+            const progressWrapper = document.getElementById('singleProgressWrapper');
+            const resultPanel = document.getElementById('singleResultPanel');
+            const progressBar = document.getElementById('singleProgressBar');
+            const uploadStatus = document.getElementById('singleUploadStatus');
+            
+            // Ẩn panel kết quả nếu đang hiển thị
+            resultPanel.style.display = 'none';
+            
+            progressWrapper.style.display = 'block';
+            progressBar.style.width = '0%';
+            uploadStatus.textContent = 'Đang tải lên...';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('dpi', dpi);
+            
+            // Sử dụng fake progress vì server không trả về tiến trình thực
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                if (progress > 90) {
+                    clearInterval(interval);
+                }
+                progressBar.style.width = progress + '%';
+                if (progress < 30) {
+                    uploadStatus.textContent = 'Đang tải lên...';
+                } else if (progress < 60) {
+                    uploadStatus.textContent = 'Đang phân tích PDF...';
+                } else {
+                    uploadStatus.textContent = 'Đang redact thông tin liên hệ...';
+                }
+            }, 500);
+            
+            fetch('/redact', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                clearInterval(interval);
+                
+                if (response.ok) {
+                    progressBar.style.width = '100%';
+                    uploadStatus.textContent = 'Hoàn thành!';
+                    
+                    return response.json();
+                } else {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Lỗi khi xử lý file');
+                    });
+                }
+            })
+            .then(data => {
+                // Hiển thị kết quả
+                setTimeout(() => {
+                    progressWrapper.style.display = 'none';
+                    
+                    // Hiển thị panel kết quả và cập nhật thông tin
+                    document.getElementById('originalFilename').textContent = data.original_filename;
+                    document.getElementById('fileUrl').value = data.file_url;
+                    document.getElementById('viewFileBtn').href = data.file_url;
+                    document.getElementById('downloadFileBtn').href = data.download_url;
+                    
+                    resultPanel.style.display = 'block';
+                }, 1000);
+            })
+            .catch(error => {
+                clearInterval(interval);
+                progressBar.classList.remove('bg-primary');
+                progressBar.classList.add('bg-danger');
+                progressBar.style.width = '100%';
+                uploadStatus.textContent = 'Lỗi: ' + error.message;
+                
+                setTimeout(() => {
+                    progressBar.classList.remove('bg-danger');
+                    progressBar.classList.add('bg-primary');
+                }, 3000);
+            });
+        });
+
+        // Xử lý form batch
+        document.getElementById('batchUploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('batchFiles');
+            if (!fileInput.files.length) {
+                alert('Vui lòng chọn ít nhất một file PDF');
+                return;
+            }
+            
+            const files = fileInput.files;
+            let allPdf = true;
+            
+            for (let i = 0; i < files.length; i++) {
+                if (!files[i].name.toLowerCase().endsWith('.pdf')) {
+                    allPdf = false;
+                    break;
+                }
+            }
+            
+            if (!allPdf) {
+                alert('Chỉ chấp nhận file PDF');
+                return;
+            }
+            
+            const dpi = document.getElementById('batchDpi').value;
+            
+            // Hiển thị thanh tiến trình
+            const progressWrapper = document.getElementById('batchProgressWrapper');
+            const progressBar = document.getElementById('batchProgressBar');
+            const uploadStatus = document.getElementById('batchUploadStatus');
+            const uploadedFiles = document.getElementById('uploadedFiles');
+            
+            progressWrapper.style.display = 'block';
+            progressBar.style.width = '0%';
+            uploadStatus.textContent = 'Đang tải lên...';
+            uploadedFiles.innerHTML = '';
+            
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+            formData.append('dpi', dpi);
+            
+            // Sử dụng fake progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 3;
+                if (progress > 90) {
+                    clearInterval(interval);
+                }
+                progressBar.style.width = progress + '%';
+                if (progress < 30) {
+                    uploadStatus.textContent = 'Đang tải lên...';
+                } else if (progress < 60) {
+                    uploadStatus.textContent = 'Đang phân tích PDF...';
+                } else {
+                    uploadStatus.textContent = 'Đang redact thông tin liên hệ...';
+                }
+            }, 500);
+            
+            fetch('/batch', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                clearInterval(interval);
+                
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'Lỗi khi xử lý files');
+                    });
+                }
+            })
+            .then(data => {
+                progressBar.style.width = '100%';
+                uploadStatus.textContent = 'Hoàn thành! ' + data.message;
+                
+                // Hiển thị kết quả
+                const batchId = data.batch_id;
+                const results = data.results;
+                
+                let html = '<h5 class="mt-4">Kết quả:</h5>';
+                
+                results.forEach(result => {
+                    if (result.success) {
+                        html += `
+                            <div class="file-item">
+                                <span>${result.filename}</span>
+                                <div class="btn-group actions">
+                                    <span class="badge bg-success">Thành công</span>
+                                    <a href="${result.view_url}" class="btn btn-sm btn-outline-primary" target="_blank">Xem</a>
+                                    <a href="${result.download_url}" class="btn btn-sm btn-outline-success" target="_blank">Tải xuống</a>
+                                    <button class="btn btn-sm btn-outline-secondary copy-btn" data-url="${result.view_url}">Sao chép URL</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="file-item">
+                                <span>${result.filename}</span>
+                                <div>
+                                    <span class="badge bg-danger">Lỗi</span>
+                                    <span class="text-danger">${result.error}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                uploadedFiles.innerHTML = html;
+                
+                // Thêm event listener cho các nút "Sao chép URL"
+                document.querySelectorAll('.copy-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const url = this.getAttribute('data-url');
+                        const tempInput = document.createElement('input');
+                        tempInput.value = url;
+                        document.body.appendChild(tempInput);
+                        tempInput.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempInput);
+                        
+                        this.innerText = 'Đã sao chép';
+                        setTimeout(() => {
+                            this.innerText = 'Sao chép URL';
+                        }, 2000);
+                    });
+                });
+                
+                // Reset form sau 5 giây
+                setTimeout(() => {
+                    progressWrapper.style.display = 'none';
+                }, 5000);
+            })
+            .catch(error => {
+                clearInterval(interval);
+                progressBar.classList.remove('bg-primary');
+                progressBar.classList.add('bg-danger');
+                progressBar.style.width = '100%';
+                uploadStatus.textContent = 'Lỗi: ' + error.message;
+                
+                setTimeout(() => {
+                    progressBar.classList.remove('bg-danger');
+                    progressBar.classList.add('bg-primary');
+                }, 3000);
+            });
+        });
+    </script>
+</body>
+</html> 
